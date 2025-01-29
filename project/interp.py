@@ -205,7 +205,7 @@ def eval(e: Expr) -> Value :
 
 
 # Evaluation takes place in an environment, which is threaded through the recursive calls.
-def evalInEnv(env: Env[int], e:Expr) -> int:
+def evalInEnv(env: Env[int], e:Expr) -> Value:
     match e:
         case Add(l,r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
@@ -239,7 +239,6 @@ def evalInEnv(env: Env[int], e:Expr) -> int:
                     return i
                 case Note(_) as a:
                     return Tune((a,))
-          
         case Name(n):
             v = lookupEnv(n, env)
             if v is None:
@@ -249,3 +248,74 @@ def evalInEnv(env: Env[int], e:Expr) -> int:
             v = evalInEnv(env, d)
             newEnv = extendEnv(n, v, env)
             return evalInEnv(newEnv, b)
+        case Or(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(bool(lv), bool(rv)):
+                    return lv or rv
+                case _:
+                    raise EvalError("OR-ing of non-booleans")
+        case And(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(bool(lv), bool(rv)):
+                    return lv and rv
+                case _:
+                    raise EvalError("AND-ing of non-booleans")
+                
+        case Eq(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(bool(lv), bool(rv)):
+                    return lv == rv
+                case(int(lv), int(rv)):
+                    return lv == rv
+                case(Tune(lv), Tune(rv)): # Check if tunes are same length,  then iterate thru and check tune Notes at each position. TODO could I pythonically use existing tuple == check??
+                    if len(lv.t) == len(rv.t):
+                        for i in range(len(lv.t)):
+                            if lv.t[i] != rv.t[i]:
+                                return False
+                        return True
+                    else:
+                        return False
+                # TODO cases for Note/Pitch/Rest?
+                case _:
+                    raise EvalError("Equality checking with invalid operands")
+
+        case Lt(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(int(lv), int(rv)):
+                    return l < r
+                case _:
+                    raise EvalError("Relational comparison with non-integer operands")
+
+        case If(b, t, e):
+            match(evalInEnv(env, b)):
+                case(bool(b)):
+                    if b is True:
+                        return evalInEnv(env, t)
+                    else:
+                        return evalInEnv(env, e)
+                case _:
+                    raise EvalError("Conditional operator with non-boolean test value")
+                
+        case ConcatTune(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(Tune(lv), Tune(rv)):
+                    return Tune(lv.t + rv.t)
+                case _:
+                    raise EvalError("ConcatTune operator with non-Tune operands")
+        case TransposeTune(l, r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(Tune(lv), int(rv)):
+                    shifted_notes = list[Note]
+                    for i in lv.t: # For each note in the tune...
+                        match(i):
+                            case(Pitch(i)):
+                                old_note = Pitch(i)
+                                new_note = old_note.octave + rv
+                                shifted_notes.append(new_note)
+                            case(Rest(i)): # Simply pass Rest thru, un-modified
+                                shifted_notes.append(i)
+                            case _:
+                                raise EvalError("TransposeTune on Tune with non-Note data...")
+                    return shifted_notes
+                case _:
+                    raise EvalError("TransposeTune on invalid operands")
