@@ -345,5 +345,7 @@ def run(e: Expr) -> None:
                 myMidi.addTempo(track, time, tempo)
                 for note in  tune:
                     myMidi.addNote(track, channel, note.frequency, note.duration, volume)
+                with open("answer.mid", "wb") as output_file:
+                    myMidi.writeFile(output_file)
     except EvalError as err:
         print(err)
