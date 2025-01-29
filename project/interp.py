@@ -1,8 +1,5 @@
 # External dependencies:
 # MIDIUtil-1.2.1
-# librosa-0.10.2.post1
-
-import librosa # For AST Frequencies to midi note # conversion
 
 from dataclasses import dataclass
 from enum import Enum
@@ -21,7 +18,8 @@ class Frequency(Enum):
 NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
 NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-def NoteToMidi(key:str, octave :int): #TODO this is not pythonic?
+# NoteToMidi behavior: original credit to https://stackoverflow.com/a/57587216 with modifications by me
+def NoteToMidi(key:str, octave :int): #TODO this is not pythonic? 
     answer = -1
     try:
         if 'b' in key:
@@ -236,25 +234,50 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case Add(l,r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(int(lv), int(rv)):
-                    return lv + rv
+                    if(type(lv) is int and type(rv) is int):
+                        return lv + rv
+                    else:
+                        raise EvalError("addition of a non-integer")
                 case _:
                     raise EvalError("addition of non-integers")
         case Sub(l,r):
              match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(int(lv), int(rv)):
-                    return lv - rv
+                    if(type(lv) is int and type(rv) is int):
+                        return lv - rv
+                    else:
+                        raise EvalError("subtraction of a non-integer")
                 case _:
                     raise EvalError("subtraction of non-integers")
-        case Mul(l,r): # we can fix the evaluation order or l and r more explicitly if we care
+                 
+        case Div(l,r):
             match (evalInEnv(env,l), evalInEnv(env,r)):
                 case (int(lv), int(rv)):
-                    return lv * rv
+                    if(type(lv) is int and type(rv) is int):
+                        if lv == 0 or rv == 0:
+                            raise EvalError("divide by zero")
+                        return lv / rv
+                    else:
+                        raise EvalError("division of a non-integer")
+                case _:
+                    raise EvalError("division of non-integers")
+                
+        case Mul(l,r):
+            match (evalInEnv(env,l), evalInEnv(env,r)):
+                case (int(lv), int(rv)):
+                    if(type(lv) is int and type(rv) is int):
+                        return lv * rv
+                    else:
+                        raise EvalError("subtraction of a non-integer")
                 case _:
                     raise EvalError("multiplication of non-integers")
         case Neg(s):
             match evalInEnv(env,s):
                 case int(i):
-                    return -i
+                    if type(i) is int:
+                        return -i
+                    else:
+                        raise EvalError("cannot take a negative of a non-integer")
                 case _:
                     raise EvalError("negation of non-integer")
         case(Lit(lit)):
@@ -292,16 +315,31 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case Or(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(bool(lv), bool(rv)):
-                    return lv or rv
+                    if(type(lv) is bool and type(rv) is bool):
+                        return lv or rv
+                    else:
+                        raise EvalError("OR-ing of a non-boolean")
                 case _:
                     raise EvalError("OR-ing of non-booleans")
         case And(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(bool(lv), bool(rv)):
-                    return lv and rv
+                    if(type(lv) is bool and type(rv) is bool):
+                        return lv and rv
+                    else:
+                        raise EvalError("AND-ing of a non-boolean")
                 case _:
                     raise EvalError("AND-ing of non-booleans")
-                
+        case Not(s):
+            match(evalInEnv(env, s)):
+                case (bool(lv)):
+                    if type(lv) is bool:
+                        return not lv
+                    else:
+                        raise EvalError("NOT-ing of a non-boolean")
+                case _:
+                    raise EvalError("NOT-ing of a non-boolean")
+        
         case Eq(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(bool(lv), bool(rv)):
@@ -454,4 +492,4 @@ run(k)
 
 # test_phase1_core demo
 expr = Sub(Lit(-90), Lit(True))
-# run(expr)
+run(expr)
