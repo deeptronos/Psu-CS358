@@ -38,7 +38,7 @@ class Rest():
 class Tune:
     t: tuple[Note, ...]
 
-type Value = Tune | int | bool # The return type for Eval
+type Value = Tune | Note | Rest | int | bool # The return type for Eval
 
 # Arithmetic boolean, binding/variables, equality comparison, relational comparison, conditional
 type Expr = Add | Sub | Mul | Div | Neg | Lit | Let | Name | Or | And | Not | Eq | Lt | If | ConcatTune | TransposeTune # TODO appropriate inclusion of domain specific additions to Expr?
@@ -165,6 +165,13 @@ class TransposeTune:
     def __str__(self) -> str:
         return f"(Transpose {self.left} by {self.right} half-steps)"
 
+@dataclass
+class TransposeNote:
+    left: Note
+    right: int # Number of half-steps
+    def __str__(self) -> str:
+        return f"(Transpose (NOTE) {self.left} by {self.right} half-steps)"
+
 
 
 # To interpret let bindings and names, we need environments.
@@ -241,10 +248,20 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     return i
                 case Tune(i):
                     return Tune(i)
-                case Note(Pitch) as a: # TODO bad idea to return Tunes?
-                    return Tune((a,))
-                case Note(Rest) as a:
-                    return Tune((a, ))
+                case Pitch(_) as p:
+                    return p
+                case Rest(_) as r:
+                    return r
+                case Frequency(_) as f:
+                    return f
+                # case Note(Pitch) as a: # TODO bad idea to return Tunes?
+                #     # return Tune((a,))
+                #     return a
+                # case Note(Rest) as a:
+                #     # return Tune((a, ))
+                #     return a # TODO is this appropriate?
+                # case _:
+
                 
         case Name(n):
             v = lookupEnv(n, env)
@@ -309,22 +326,45 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     return Tune(lv + rv)
                 case _:
                     raise EvalError("ConcatTune operator with non-Tune operands")
+                
         case TransposeTune(l, r):
+            return Tune(l)
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), int(rv)):
                     shifted_notes = []
-                    for note in lv.t:
-                        if isinstance(note, Pitch):
-                            new_octave = note.octave + rv
-                            shifted_notes.append(Pitch(note.frequency, new_octave, note.duration))
-                        elif isinstance(note, Rest):
-                            shifted_notes.append(Rest(note.duration))
-                        else:
-                             raise EvalError("Unexpected note type in TransposeTune")
+                    for note in lv:
+                        match note:
+                            case Pitch():
+                                new_octave = note.octave + rv
+                                shifted_notes.append(Pitch(note.frequency.value, new_octave, note.duration))
+                            case Rest():
+                                shifted_notes.append(Rest(note.duration))
+                            case _:
+                                raise EvalError("Unexpected note type in TransposeTune")
+                            
+                            #  case(Lit(lit)):
+                                # match lit:  # two-level matching keeps type-checker happy
+                                    # case int(i):
+                        # match note:
+                        #     case Pitch(pitch_note):
+                        #         new_octave = pitch_note.octave + rv
+                        #         shifted_notes.append(Pitch(note.frequency.value, new_octave, note.duration))
+                        #     case Rest(rest_note):
+                        #         shifted_notes.append(Rest(rest_note.duration))
+                        #     case _:
+                        #         raise EvalError("Unexpected note type in TransposeTune")
                     return Tune(shifted_notes)
                 case _:
                     raise EvalError("TransposeTune on invalid operands")
-                    
+                
+        case TransposeNote(l ,r):
+            match(evalInEnv(env, l), evalInEnv(env, r)):
+                case(Pitch(lv), int(rv)):
+                    return Note(lv)
+                case(Rest(lv), int(rv)):
+                    return Rest(lv)
+                case _:
+                    raise EvalError("TransposeNote on invalid operands")
 
 from midiutil import MIDIFile
 # TODO organize midi setup
@@ -351,7 +391,8 @@ def run(e: Expr) -> None:
                 incr = duration / len(tune) # The spacing between each beat given the # of beats and the length of the tune
                 timer = 0
                 for note in tune:
-                    myMidi.addNote(track, channel, note.frequency.value, timer, note.duration, volume)
+                    if isinstance(note, Pitch):
+                        myMidi.addNote(track, channel, note.frequency.value, timer, note.duration, volume)
                     timer += incr
 
                 print("Opening file for midi write-out...")
@@ -365,7 +406,7 @@ def run(e: Expr) -> None:
 
 a : Tune = Lit(Tune([(Pitch(Frequency.C, 0, 1.0)), (Pitch(Frequency.D, 0, 1.0)), (Pitch(Frequency.E, 0, 1.0)), (Pitch(Frequency.F, 0, 1.0)), (Pitch(Frequency.G, 0, 1.0)), (Pitch(Frequency.A, 0, 1.0)), (Pitch(Frequency.B, 0, 1.0))]))
 b : Tune = Lit(Tune([(Pitch(Frequency.C, 1, 1.0)), (Pitch(Frequency.D, 2, 1.0)), (Pitch(Frequency.E, 3, 1.0)), (Pitch(Frequency.F, 4, 1.0)), (Pitch(Frequency.G, 5, 1.0)), (Pitch(Frequency.A, 6, 1.0)), (Pitch(Frequency.B, 7, 1.0))]))
-c : Tune = Tune([(Rest(1)), (Pitch(Frequency.C, 3, 0.5)), (Pitch(Frequency.E, 3, 1.5))])
+c : Tune = Lit(Tune([(Rest(1)), (Pitch(Frequency.C, 3, 0.5)), (Pitch(Frequency.E, 3, 1.5))]))
 
 
 d : Tune = ConcatTune(a, b)
@@ -374,9 +415,9 @@ f : Tune = ConcatTune(d,a)
 g : Tune = ConcatTune(d,e)
 h : Tune = ConcatTune(ConcatTune(a, c), ConcatTune(b, c))
 
-i : Tune = TransposeTune(a, 2)
-j : Tune = TransposeTune(h, 3)
-k : Tune = ConcatTune(ConcatTune(c, TransposeTune(c, 1)), ConcatTune(c, TransposeTune(c, 3)))
+i : Tune = Lit(TransposeTune(a, Lit(2)))
+j : Tune = Lit(TransposeTune(h, Lit(3)))
+k : Tune = Lit(ConcatTune(ConcatTune(c, TransposeTune(c, Lit(1))), ConcatTune(c, TransposeTune(c, Lit(3)))))
 
 run(a)
 run(b)
@@ -389,3 +430,6 @@ run(h)
 run(i)
 run(j)
 run(k)
+
+# test_phase1_core demo
+expr = Sub(Lit(-90), Lit(True))
