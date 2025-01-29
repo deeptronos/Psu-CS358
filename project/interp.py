@@ -1,7 +1,8 @@
-# # External dependencies:
-# # MIDIUtil-1.2.1
+# External dependencies:
+# MIDIUtil-1.2.1
+# librosa-0.10.2.post1
 
-# TODO: AST Frequencies to midi note # conversion?
+import librosa # For AST Frequencies to midi note # conversion
 
 from dataclasses import dataclass
 from enum import Enum
@@ -16,6 +17,22 @@ class Frequency(Enum):
     G = 4
     A = 5
     B = 6
+
+NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+def NoteToMidi(key:str, octave :int): #TODO this is not pythonic?
+    answer = -1
+    try:
+        if 'b' in key:
+            pos = NOTES_FLAT.index(key)
+            answer = pos + 12 * (int(octave) + 1) + 1
+        else:
+            pos = NOTES_SHARP.index(key)
+            answer = pos + 12 * (int(octave) + 1) + 1
+    except:
+        print("Invalid key: ", key)
+    return answer
 
 type Note =  Pitch | Rest
 
@@ -37,7 +54,7 @@ class Rest():
 @dataclass
 class Tune:
     t: tuple[Note, ...]
-
+    
 type Value = Tune | Note | Rest | int | bool # The return type for Eval
 
 # Arithmetic boolean, binding/variables, equality comparison, relational comparison, conditional
@@ -319,16 +336,16 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                         return evalInEnv(env, e)
                 case _:
                     raise EvalError("Conditional operator with non-boolean test value")
-                
+
         case ConcatTune(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), Tune(rv)):
                     return Tune(lv + rv)
                 case _:
                     raise EvalError("ConcatTune operator with non-Tune operands")
-                
+
         case TransposeTune(l, r):
-            return Tune(l)
+            print("\n TransposeTune!!!\n")
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), int(rv)):
                     shifted_notes = []
@@ -336,7 +353,7 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                         match note:
                             case Pitch():
                                 new_octave = note.octave + rv
-                                shifted_notes.append(Pitch(note.frequency.value, new_octave, note.duration))
+                                shifted_notes.append(Pitch(note.frequency, new_octave, note.duration))
                             case Rest():
                                 shifted_notes.append(Rest(note.duration))
                             case _:
@@ -386,13 +403,17 @@ def run(e: Expr) -> None:
             case bool(i):
                 print(f"result: {i}")
             case Tune(tune):
+                print(f"result: Tune: {tune}")
                 myMidi = MIDIFile(1)
                 myMidi.addTempo(track, time, tempo)
                 incr = duration / len(tune) # The spacing between each beat given the # of beats and the length of the tune
                 timer = 0
                 for note in tune:
                     if isinstance(note, Pitch):
-                        myMidi.addNote(track, channel, note.frequency.value, timer, note.duration, volume)
+                        # Convert note to midi val (0-127)
+                        note_midi =NoteToMidi(note.frequency.name, note.octave)
+
+                        myMidi.addNote(track, channel, note_midi, timer, note.duration, volume)
                     timer += incr
 
                 print("Opening file for midi write-out...")
@@ -415,9 +436,9 @@ f : Tune = ConcatTune(d,a)
 g : Tune = ConcatTune(d,e)
 h : Tune = ConcatTune(ConcatTune(a, c), ConcatTune(b, c))
 
-i : Tune = Lit(TransposeTune(a, Lit(2)))
-j : Tune = Lit(TransposeTune(h, Lit(3)))
-k : Tune = Lit(ConcatTune(ConcatTune(c, TransposeTune(c, Lit(1))), ConcatTune(c, TransposeTune(c, Lit(3)))))
+i : Tune = (TransposeTune(a, Lit(2)))
+j : Tune = (TransposeTune(h, Lit(3)))
+k : Tune = (ConcatTune((ConcatTune(c, (TransposeTune(c, Lit(3))))), (ConcatTune(c, (TransposeTune(c, Lit(5)))))))
 
 run(a)
 run(b)
@@ -433,3 +454,4 @@ run(k)
 
 # test_phase1_core demo
 expr = Sub(Lit(-90), Lit(True))
+# run(expr)
