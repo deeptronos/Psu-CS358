@@ -1,6 +1,8 @@
 # # External dependencies:
 # # MIDIUtil-1.2.1
 
+# TODO: AST Frequencies to midi note # conversion?
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union # Used for allowing multiple data types in a dataclass
@@ -305,17 +307,43 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case TransposeTune(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), int(rv)):
-                    shifted_notes = list[Note]
-                    for i in lv.t: # For each note in the tune...
-                        match(i):
-                            case(Pitch(i)):
-                                old_note = Pitch(i)
-                                new_note = old_note.octave + rv
-                                shifted_notes.append(new_note)
-                            case(Rest(i)): # Simply pass Rest thru, un-modified
-                                shifted_notes.append(i)
-                            case _:
-                                raise EvalError("TransposeTune on Tune with non-Note data...")
-                    return shifted_notes
+                    shifted_notes = []
+                    for note in lv.t:
+                        if isinstance(note, Pitch):
+                            new_octave = note.octave + rv
+                            shifted_notes.append(Pitch(note.frequency, new_octave, note.duration))
+                        elif isinstance(note, Rest):
+                            shifted_notes.append(Rest(note.duration))
+                        else:
+                             raise EvalError("Unexpected note type in TransposeTune")
+                    return Tune(shifted_notes)
                 case _:
                     raise EvalError("TransposeTune on invalid operands")
+                    
+
+from midiutil import MIDIFile
+# TODO organize midi setup
+track = 0
+channel = 0
+time = 0 # in beats
+duration = 1 # in beats
+tempo = 80 # in BPM
+volume = 127 # 0-127
+
+
+
+def run(e: Expr) -> None:
+    print(f"running {e}")
+    try:
+        match eval(e):
+            case int(i):
+                print(f"result: {i}")
+            case bool(i):
+                print(f"result: {i}")
+            case Tune(tune):
+                myMidi = MIDIFile(1)
+                myMidi.addTempo(track, time, tempo)
+                for note in  tune:
+                    myMidi.addNote(track, channel, note.frequency, note.duration, volume)
+    except EvalError as err:
+        print(err)
