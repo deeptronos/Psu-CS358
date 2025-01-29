@@ -239,8 +239,13 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     return i
                 case bool(i):
                     return i
-                case Note(_) as a:
+                case Tune(i):
+                    return Tune(i)
+                case Note(Pitch) as a: # TODO bad idea to return Tunes?
                     return Tune((a,))
+                case Note(Rest) as a:
+                    return Tune((a, ))
+                
         case Name(n):
             v = lookupEnv(n, env)
             if v is None:
@@ -301,7 +306,7 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case ConcatTune(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), Tune(rv)):
-                    return Tune(lv.t + rv.t)
+                    return Tune(lv + rv)
                 case _:
                     raise EvalError("ConcatTune operator with non-Tune operands")
         case TransposeTune(l, r):
@@ -326,14 +331,14 @@ from midiutil import MIDIFile
 track = 0
 channel = 0
 time = 0 # in beats
-duration = 1 # in beats
+duration = 64 # in beats
 tempo = 80 # in BPM
 volume = 127 # 0-127
 
 
 
 def run(e: Expr) -> None:
-    print(f"running {e}")
+    print(f"running {e}\n" )
     try:
         match eval(e):
             case int(i):
@@ -343,9 +348,44 @@ def run(e: Expr) -> None:
             case Tune(tune):
                 myMidi = MIDIFile(1)
                 myMidi.addTempo(track, time, tempo)
-                for note in  tune:
-                    myMidi.addNote(track, channel, note.frequency, note.duration, volume)
-                with open("answer.mid", "wb") as output_file:
-                    myMidi.writeFile(output_file)
+                incr = duration / len(tune) # The spacing between each beat given the # of beats and the length of the tune
+                timer = 0
+                for note in tune:
+                    myMidi.addNote(track, channel, note.frequency.value, timer, note.duration, volume)
+                    timer += incr
+
+                print("Opening file for midi write-out...")
+                binfile = open("output.mid", 'wb')
+                myMidi.writeFile(binfile)
+                binfile.close()
+
+                return Tune(tune) #TODO ok?
     except EvalError as err:
-        print(err)
+        print('\t'+str(err))
+
+a : Tune = Lit(Tune([(Pitch(Frequency.C, 0, 1.0)), (Pitch(Frequency.D, 0, 1.0)), (Pitch(Frequency.E, 0, 1.0)), (Pitch(Frequency.F, 0, 1.0)), (Pitch(Frequency.G, 0, 1.0)), (Pitch(Frequency.A, 0, 1.0)), (Pitch(Frequency.B, 0, 1.0))]))
+b : Tune = Lit(Tune([(Pitch(Frequency.C, 1, 1.0)), (Pitch(Frequency.D, 2, 1.0)), (Pitch(Frequency.E, 3, 1.0)), (Pitch(Frequency.F, 4, 1.0)), (Pitch(Frequency.G, 5, 1.0)), (Pitch(Frequency.A, 6, 1.0)), (Pitch(Frequency.B, 7, 1.0))]))
+c : Tune = Tune([(Rest(1)), (Pitch(Frequency.C, 3, 0.5)), (Pitch(Frequency.E, 3, 1.5))])
+
+
+d : Tune = ConcatTune(a, b)
+e : Tune = ConcatTune(b, a)
+f : Tune = ConcatTune(d,a)
+g : Tune = ConcatTune(d,e)
+h : Tune = ConcatTune(ConcatTune(a, c), ConcatTune(b, c))
+
+i : Tune = TransposeTune(a, 2)
+j : Tune = TransposeTune(h, 3)
+k : Tune = ConcatTune(ConcatTune(c, TransposeTune(c, 1)), ConcatTune(c, TransposeTune(c, 3)))
+
+run(a)
+run(b)
+run(c)
+run(d)
+run(e)
+run(f)
+run(g)
+run(h)
+run(i)
+run(j)
+run(k)
