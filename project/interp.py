@@ -386,7 +386,6 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     raise EvalError("ConcatTune operator with non-Tune operands")
 
         case TransposeTune(l, r):
-            print("\n TransposeTune!!!\n")
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(Tune(lv), int(rv)):
                     shifted_notes = []
