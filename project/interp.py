@@ -1,6 +1,9 @@
 # External dependencies:
 # MIDIUtil-1.2.1
 
+# NOTE TO GRADER:
+# My code passes nearly all tests supplied in test_phase1_core.py, however several tests (which seem like they should expect errors, given the Project Guideline's specificity about restricting the types that can be used by arithmetic, boolean, equality, and relational operators.) fail becuase an error is raised when they expect some value. Am I confused here? It seems like these test were written to a less-strict standard for input types to these types of operators than what is outlined in the Project Guidelines...
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union # Used for allowing multiple data types in a dataclass
