@@ -157,13 +157,13 @@ class TestEval(TestCase):
         expr = And(Lit(True), Lit(24))
         self.expect_error(expr)
 
-    def test_and_short_circuit_error(self):
+    def test_and_short_circuit_error(self): # TODO why would you not expect this to be an error? should -16/0 return false instead of raising an error?
         # false and -16 / 0
         # => false
         expr = And(Lit(False), Div(Lit(-16), Lit(0)))
-        self.expect(expr, False)
+        self.expect(expr, False) # TODO FAILS?
 
-    def test_and_short_circuit_type_error(self):
+    def test_and_short_circuit_type_error(self): # TODO why wouldn't this expect_error?
         # false and 86
         # => false
         expr = And(Lit(False), Lit(86))

@@ -4,6 +4,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union # Used for allowing multiple data types in a dataclass
+import math
 
 # Define primitive melody literals
 class Frequency(Enum):
@@ -256,7 +257,9 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     if(type(lv) is int and type(rv) is int):
                         if lv == 0 or rv == 0:
                             raise EvalError("divide by zero")
-                        return lv / rv
+                        return (lv + rv  // 2 ) // rv # Credit to John Machin https://stackoverflow.com/a/3950960
+                        # return math.ceil(lv / rv)
+                        # return int(lv / rv)
                     else:
                         raise EvalError("division of a non-integer")
                 case _:
@@ -268,7 +271,7 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
                     if(type(lv) is int and type(rv) is int):
                         return lv * rv
                     else:
-                        raise EvalError("subtraction of a non-integer")
+                        raise EvalError("multiplication of a non-integer")
                 case _:
                     raise EvalError("multiplication of non-integers")
         case Neg(s):
@@ -315,10 +318,10 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case Or(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(bool(lv), bool(rv)):
-                    if(type(lv) is bool and type(rv) is bool):
-                        return lv or rv
-                    else:
-                        raise EvalError("OR-ing of a non-boolean")
+                    # if(type(lv) is bool and type(rv) is bool):
+                    return lv or rv
+                    # else:
+                        # raise EvalError("OR-ing of a non-boolean")
                 case _:
                     raise EvalError("OR-ing of non-booleans")
         case And(l, r):
@@ -361,7 +364,7 @@ def evalInEnv(env: Env[int], e:Expr) -> Value:
         case Lt(l, r):
             match(evalInEnv(env, l), evalInEnv(env, r)):
                 case(int(lv), int(rv)):
-                    return l < r
+                    return lv < rv
                 case _:
                     raise EvalError("Relational comparison with non-integer operands")
 
@@ -490,6 +493,6 @@ run(i)
 run(j)
 run(k)
 
-# test_phase1_core demo
-expr = Sub(Lit(-90), Lit(True))
-run(expr)
+# # test_phase1_core demo
+# expr = Sub(Lit(-90), Lit(True))
+# run(expr)
