@@ -1,0 +1,66 @@
+1. i. top.*top
+1. ii. \b(top|pot)\b
+1. iii. ^(?=.*top)(?=.*pot).+$
+1. iv. "(?!.*top).+"gm
+
+2. Hexadecimal constants: 0[xX][0-9a-fA-F]+
+    Octal constants: 0[0-7]*
+        Note: this was completed using https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf as help for C RE constant standards.
+3. \/\*[^*]*\*+([^/*][^*]*\*+)*\/
+4. i. The language consists of all non-empty sequences of `x`s connected by `+` operators.
+4. ii. The grammar is ambiguous because `x + x + x` could be parsed in two ways.
+4. iii. An unambiguous grammer defining the same language is `E -> E + x|x`.
+4. iv. A regular expression for this language is `x(\+x)*`.
+
+5. i. This cannot be defined by a regular expression. This is because maintaining balanced parenthesis requires counting, and the finite automata used to recognize REs cannot count.
+5. ii. CFG: `S -> ε | (S)| SS`
+5. iii. This grammar is unambiguous. We can understand this for the following reasons:
+    1. There is a unique derivation for each string.For the empty string, `S -> ε`. For a string like `()`, the only derivation is `S -> (S) -> ()`. For a string like `(())`, the only derivation is `S -> (S) -> ((S)) -> (())`. For a string like `()()`, the only derivation is `S -> SS -> (S)S -> ()S -> ()(S) -> ()()`.
+    2. There is not ambiguity in grouping. The rule `S -> (S)` ensures that every pair of parantheses is explicitly matched. The rulse `S -> SS` ensures that concatenated balanced strings are treated as seperate units, without overlap or ambiguity.
+    3. There are no alternative derivations. For any string in this language, there is only one way to apply the rules of the grammer to it.
+    Thus, the grammer is unambiguous.
+
+6. Grammer:
+    a. Start symbol: `E`
+    b. Non-terminals: `E`, `Term`, `Factor`, `Atom`
+    c. Terminals: `x`, `!`, `&&`, `||`, `(`, `)`,
+    d. Production rules:
+        - Expression: `E -> Term || E | Term`
+            * Ensures that `||` has lowest precedence and is left associative.
+        - `Term -> Factor && Term | Factor`
+            * This rule ensures that `&&` has higher precedence than `||` and is left-associative.
+        - `Factor -> ! Factor | Atom`
+            * This rule ensures that `!` has the highest precedence.
+        - `Atom -> x | (E)`
+            * This rule defines the atoms as either a variable `x` or a parenthesized expression.
+
+7. a. Example of a valid Python expression using at least one operator of each category:
+    ```
+    x = 5
+    y = 10
+    z = 3
+
+    result = x + y > z * 2 and x != y or not z == 0
+    ```
+    Simplifying...
+    ```
+    result = 15 > 6 and TRUE or not FALSE
+    result = TRUE and TRUE or TRUE
+    result = TRUE or TRUE
+    result = TRUE
+    ```
+7. b.
+Python precedence (high to low):
+    1. Arithmetic operators
+    2. All comparison operators (equality and relational)
+    2. Logical operators
+C++ precedence (high to low)
+    1. Arithmetic operators
+    2. Relational comparison operators
+    2. Equality comparison operators
+    4. Logical operators
+
+7.c. Differences/Examples:
+    Relational vs Quality precedence differs between the two. In C++, relational operators have higher precedence than equality, while in Python, all comparisons have equal precedence. For example, evaluating `2<3 == True`,
+        Python: Evaluates `(2 < 3) and (3 == True)` -> `True and False` -> `False`
+        C++: Evaluates `(2 < 3) == True -> `true == true` -> `false`.
