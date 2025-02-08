@@ -1,0 +1,7 @@
+While I feel confused about how to complete the exercise's required steps, I feel like I may understand how the interpreters work behind-the-scenes. 
+
+Variant A is suited to dynamic environments where type safety isn't crucial but variable scoping is non-strict.
+
+Variants B and C are suited to scenarios requireing lexical scoping but with either no typing or no runtime checks.
+
+Variant D is suited to projects needing type enforcement for lexically scoped variables.
