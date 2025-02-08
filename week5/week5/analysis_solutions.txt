@@ -1,0 +1,29 @@
+Catherine Nemec 2025
+
+3. 
+    Python: The expression `a rop1 b rop2 c` is evaluated as `(a rop1 b) and (b rop2 c)`. Both comparisions are performed independently, and the result is `True` only if both `a rop1 b` and `b rop2 c` are true. For example, `1 < 3 > 2` becomes `(1 < 3) and (3 > 2)`, which evaluates to `True`.
+    C: The expression `a rop1 b rop2 c` is evaluated left-associatively as `((a rop1 b) rop2 c)`. The result of `a rop1 b` (which is 0 or 1) becomes the left operand for the second comparison. For example, `1 < 3 > 2` becomes `((1 < 3) > 2)`, which evaluates as `( 1 > 2 )` -> 0.
+
+4. 
+    Corresponding to non-terminals:
+    - `[0-9]+` matches `digit`: Matches a single digit ([0-9])
+    - [0-9]+\.` or `[0-9+]` matches `digit-sequence`: Matches a sequence of one or more digits ([0-9]-).
+    - `[eE](\+|-)? [0-9]+` matches `exponent`: Matches an optional sign (+ or -) followed by one or more digits.
+
+    Pros and Cons:
+        EBNF:
+        Pros: 
+            - Modularity: clear separation of concerns with defined non-terminals.
+            - Readability and maintainability: Easier to understand and modify as specifications evolve.
+            - Operator precedence and associativity: Allows explicit definition, reducing ambiguity.
+        Cons:
+            - Complexity/verbosity
+            - Learning curve: Requires understanding of formal language rules.
+        
+        Regular Expressions:
+        Pros:
+            - Direct matching: Simpler to write for string patterns.
+            - Ease of use: Compact and straightforward (for specific cases.)
+        Cons:
+            - Complexity: Growth can become unwieldy with increased requirements.
+            - Maintainability: Issues can emerge and become less easy to recognize as the pattern evolves.
