@@ -1,0 +1,54 @@
+These problems ask you to make changes to the files
+
+interp_fun.py
+expr_fun.lark
+parse_run_fun.py
+
+in this directory. These are identical to the files discussed in class on 10Feb.
+
+Your task is to extend the interpreter in two ways, as described below.
+Start by making fresh copies of the above files, called
+
+interp_fun1.py
+expr_fun1.lark
+parse_run_fun1.py
+
+(Make sure to modify parse_run_fun1.py to reference interp_fun1 and expr_fun1 where appropriate.)
+Implement your extended interpreter in this files, and include them in your submission zip file.
+
+PROBLEM 1: Multi-argument functions
+
+Change the AST and concrete grammar for function definitions and applications to
+support an arbitrary number of parameters/arguments (zero or more), instead of just one.
+
+In the concrete syntax, multiple arguments should be separated by commas (',').
+For example: "letfun f(x,y) = x+y in f(1,2) end".
+
+What possible ways might a multi-argument function might be ill-defined or
+incorrectly called?  Document what potential errors might occur, detect them in the
+interpreter, and cause an exception to be raised when the function is defined or applied,
+as appropriate.
+
+Parsing hint: It is easiest to make this change by introducing new nonterminals
+to represent arbitrary-length lists of parameters (strings) and arguments (Expressions).
+Lark provides convenient RE-like shorthands for writing appropriate productions for
+these nonterminals. 
+
+PROBLEM 2: Lambda expressions
+
+Change the AST and concrete grammar to support lambda expressions (anonymous functions).
+Your lambda expressions should support multiple parameters, as in Problem 1. 
+
+The concrete syntax for a lambda expression with parameters p1,...pn and body b should be
+"lambda p1,...,pn -> b".  Note that there are *no* parentheses around the parameter list.
+Anonymous functions can be called just like ordinary named ones. For example:
+"let f = lambda x,y -> x + y in f(1,2) end".
+
+Lambda expressions should have the *lowest* possible precedence.
+
+Note that "lambda" is already a reserved word in Python, so it is not suitable as the name
+of a function or grammar alias.
+
+Interpretation hint: this extension is very simple; it does not require adding major new
+machinery to the interpreter.
+

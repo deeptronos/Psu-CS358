@@ -1,0 +1,42 @@
+Catherine Nemec 2025
+
+3.
+    i. At the beginning of line 14, the following are on the stack:
+        - 2, at main:a
+        - 20, at main:b
+    ii. At the beginning of line 08, the following are on the stack:
+        - 3, at f:q
+        - 3, at f:r
+        - #15, at f:retadd
+        - 2, at main:a
+        - 20, at main:b
+    iii. At the beginning of line 03, the following are on the stack:
+        - 6, at g:p
+        - 10 at g:t
+        - 3, at g:s
+        - #9, at g:retadd
+        - 3, at f:q
+        - 3, at f:r
+        - #15, at f:retadd
+        - 2, at main:a
+        - 20, at main:b
+    iv. At the beginning of line 09, the following are on the stack:
+        - 7, at f:q
+        - 3, at f:r
+        - #15, at f:retadd
+        - 2, at main:a
+        - 20, at main:b
+    v. At the beginning of line 15, the following are on the stack:
+        - 8, at main:b
+        - 2, at main:a
+
+4.
+    a. The behavior of this program, by the C lang definition, would be undefined because `g()` declares and returns and integer`b`, however `b` is never initialized to a value. Thus, there is no value recorded for `b`, so the printed value is gibberish.
+    b. While this program has undefined behavior, when passed default optimization settings it may be compiled by come compilers. At these optimization settings, by the time the program makes the `printf()` call and exits, the only initialized variable in memory will be `int a = 42`, so if memory is printed it could concievably print the location that was initialized to `a`'s data before `f()` returned nothing. Another possible explanation could be that, since unmanaged/uninitialized memory can be assumed to be output by this `printf()` call, 42 could possibly in the output (as a random part of the uninitialized memory being printed.)
+
+5.
+    The key differences between Python and C++'s STL sorting are:
+        * Python uses a key function to extract a comparison key, whereas C++ uses a comparion function to directly compare elements. Python's strength is concise-ness and readability wheras C++'s approach is more flexible for complex comparisons.
+        * Python's `list.sort()` behavior is a method of the `List` object, while C++'s `std::sort` is a standalone function that operates on iterators.
+        * Python sorts in ascending order by default, and the `reverse` parameter can be used to control the direction. C++ sorts in acending order by default too, and comparison functions must explicitly define the order.
+        * Python is dynamically typed, so the `key` function can work on any type as long as the extracted key is comparable. C++ is dynamically typed, so the comparison function must match the types of the elements being sorted.
